@@ -1,8 +1,11 @@
 from typing import Iterable
 import numpy as np
+from scipy import stats
+
 from pybispectra import compute_fft, get_example_data_paths, WaveShape
 
 from py_neuromodulation import nm_features_abc
+
 
 class Bispectra(nm_features_abc.Feature):
 
@@ -89,7 +92,7 @@ class Bispectra(nm_features_abc.Feature):
     def calc_feature(self, data: np.array, features_compute: dict) -> dict:
         for ch_idx, ch_name in enumerate(self.ch_names):
             fft_coeffs, freqs = compute_fft(
-                data=np.expand_dims(data[ch_idx, :], axis=(0,1)),
+                data=np.expand_dims(data[ch_idx, :] - data[ch_idx, :].mean(), axis=(0,1)),
                 sampling_freq=self.sfreq,
                 n_points=data.shape[1],
             verbose=False,

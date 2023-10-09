@@ -1,7 +1,6 @@
 """
 ECoG Movement decoding example 
 ==============================
-
 """
 
 # %%
@@ -18,6 +17,7 @@ ECoG Movement decoding example
 # %%
 from sklearn import metrics, model_selection, linear_model
 import matplotlib.pyplot as plt
+from scipy import stats
 
 import py_neuromodulation as nm
 from py_neuromodulation import (
@@ -29,10 +29,7 @@ from py_neuromodulation import (
     nm_settings,
 )
 
-
-from scipy import stats
 import mne
-import json
 import numpy as np
 
 # %%
@@ -42,28 +39,18 @@ import numpy as np
 PATH_OUT = r"E:\scratch"
 RUN_NAME = "TestBispectrum"
 
-raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\OneDrive - Charité - Universitätsmedizin Berlin\Dokumente\Data\BIDS_01_Berlin_Neurophys\rawdata\sub-EL006\ses-EcogLfpMedOff02\ieeg\sub-EL006_ses-EcogLfpMedOff02_task-ReadRelaxMoveL_acq-StimOff_run-1_ieeg.vhdr", preload=True)
-
-PATH_JSON_LABEL = r"C:\Users\ICN_admin\OneDrive - Charité - Universitätsmedizin Berlin\Dokumente\Data\BIDS_01_Berlin_Neurophys\derivatives\label_task-ReadRelaxMove\sub-EL006\sub-EL006_ses-EphysMedOff02_task-ReadRelaxMoveL_run-0_ieeg_label.json"
-
-with open(PATH_JSON_LABEL, 'r') as f:
-    label_ = json.load(f)
-
-#raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-002\ses-EcogLfpMedOff01\ieeg\sub-002_ses-EcogLfpMedOff01_task-SelfpacedRotationR_acq-StimOff_run-01_ieeg.vhdr")
-raw = mne.io.read_raw_brainvision(
-    r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-003\ses-EcogLfpMedOff01\ieeg\sub-003_ses-EcogLfpMedOff01_task-SelfpacedRotationR_acq-StimOff_run-01_ieeg.vhdr",
-    preload=True
-)
+raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-002\ses-EcogLfpMedOff01\ieeg\sub-002_ses-EcogLfpMedOff01_task-SelfpacedRotationR_acq-StimOff_run-01_ieeg.vhdr")
+#raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-003\ses-EcogLfpMedOff01\ieeg\sub-003_ses-EcogLfpMedOff01_task-SelfpacedRotationR_acq-StimOff_run-01_ieeg.vhdr")
 #raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-005\ses-EcogLfpMedOff01\ieeg\sub-005_ses-EcogLfpMedOff01_task-SelfpacedRotationR_acq-StimOff_run-01_ieeg.vhdr")
 #raw = mne.io.read_raw_brainvision(r"C:\Users\ICN_admin\Documents\Datasets\Berlin\sub-005\ses-EcogLfpMedOff02\ieeg\sub-005_ses-EcogLfpMedOff02_task-SelfpacedRotationR_acq-StimOn_run-01_ieeg.vhdr")
 
 
-#raw.pick(["ECOG_R_03_SMC_AT"])
-raw.pick(["ECOG_L_1_SMC_AT"])
-#raw.pick(["ECOG_R_1_SMC_AT"])
+raw.pick(["ECOG_L_1_SMC_AT", "SQUARED_ROTATION"])
+#raw.pick(["ECOG_L_1_SMC_AT"])
+#raw.pick(["ECOG_R_1_SMC_AT", "rota_squared"])
 sfreq = raw.info["sfreq"]
 
-data = raw.get_data()#[:, :int(sfreq)*150]
+data = raw.get_data()#[:, :int(sfreq)*100]
 
 
 line_noise = 50
@@ -76,7 +63,7 @@ nm_channels = nm_define_nmchannels.set_channels(
     bads=raw.info["bads"],
     new_names="default",
     used_types=("ecog", "dbs", "seeg"),
-    target_keywords=["MOV_RIGHT"],
+    target_keywords=["SQUARED_ROTATION"],
 )
 
 nm_channels.loc[nm_channels["name"] == "ECOG_L_1_SMC_AT", "used"] = 1
@@ -113,8 +100,7 @@ settings["features"]["sharpwave_analysis"] = False
 settings["features"]["coherence"] = False
 settings["features"]["bispectrum"] = True
 
-settings["postprocessing"]["feature_normalization"] = False
-settings["preprocessing"] = ["raw_resampling"]
+
 # %%
 stream = nm.Stream(
     sfreq=sfreq,
@@ -133,56 +119,10 @@ features = stream.run(
     folder_name=RUN_NAME,
 )
 
-
-raw.filter(l_freq=2, h_freq=None)
-
-
-plt.figure()
-plt.plot(features["time"],
-         features["ECOG_L_1_SMC_AT_Bispectrum_imag_mean_whole_fband_range"], label="MEAN PHASE")
-
-plt.plot(features["time"],
-         features["ECOG_L_1_SMC_AT_Bispectrum_phase_mean_whole_fband_range"], label="MEAN REAL")
-
-#plt.plot(raw.times[:-5000]*1000,
-#         -2 + stats.zscore(raw.get_data()[0, :-5000] * 0.5), label="raw data")
-
-#plt.plot(np.array(label_["time"])*1000,
-#         -4 + np.array(label_["label"]), label="movement")
-
-#plt.xlim(213000, 219000)
-
-plt.legend()
-
-# how does the distribution change over time?
-
-
-
-
-plt.plot(raw.times*1000, stats.zscore(raw.get_data()[0, :]))
-
-plt.plot(features["time"], stats.zscore(features["ECOG_L_1_SMC_AT_Bispectrum_phase_mean_whole_fband_range"]))
-plt.plot(raw.times*1000, stats.zscore(raw.get_data()[0, :]))
-
-
-# identify most correlated features
-corr_matrix = features.corr()
-corr_matrix["SQUARED_ROTATION"].sort_values(ascending=False).plot.barh()
-
-plt.figure()
-plt.scatter(features["ECOG_L_1_SMC_AT_Bispectrum_real_sum_whole_fband_range"],
-            features["ECOG_L_1_SMC_AT_Bispectrum_real_sum_high beta"],
-            c=features["SQUARED_ROTATION"])
-
-plt.figure()
-plt.scatter(features["ECOG_L_1_SMC_AT_Bispectrum_real_var_alpha"],
-            features["ECOG_L_1_SMC_AT_Bispectrum_phase_sum_alpha"],
-            c=features["SQUARED_ROTATION"])
-
-features_plt = features[np.logical_and(features["time"] > int(sfreq)*10, features["time"] < int(sfreq)*15)]
+features_plt = features[np.logical_and(features["time"] > int(sfreq)*50, features["time"] < int(sfreq)*60)]
 plt.figure()
 plt.subplot(211)
-plt.plot(data[0, int(sfreq)*10 : int(sfreq)*15])
+plt.plot(data[0, int(sfreq)*50 : int(sfreq)*60])
 plt.subplot(212)
 plt.plot(features_plt["ECOG_L_1_SMC_AT_Bispectrum_phase_mean_whole_fband_range"], label="phase")
 plt.plot(features_plt["ECOG_L_1_SMC_AT_Bispectrum_real_mean_whole_fband_range"], label="real")
@@ -212,16 +152,70 @@ print(feature_reader.feature_arr.shape)
 # %%
 feature_reader._get_target_ch()
 
+features_to_plt = [
+                   "ECOG_L_1_SMC_AT_Bispectrum_phase_sum_whole_fband_range",
+                   "ECOG_L_1_SMC_AT_Bispectrum_absolute_mean_theta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_absolute_mean_alpha",
+                   "ECOG_L_1_SMC_AT_Bispectrum_absolute_mean_low beta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_real_sum_low beta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_absolute_mean_high beta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_real_mean_high beta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_real_mean_theta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_real_mean_alpha",
+                   #"ECOG_L_1_SMC_AT_Bispectrum_real_mean_low beta",
+                   "ECOG_L_1_SMC_AT_Bispectrum_real_var_alpha",
+                   ][::-1]
+
 # %%
 feature_reader.plot_target_averaged_channel(
     ch="ECOG_L_1_SMC_AT",
     list_feature_keywords=None,
-    epoch_len=7,
+    features_to_plt=features_to_plt,
+    epoch_len=6,
     threshold=0.5,
-    ytick_labelsize=10,
+    ytick_labelsize=12,
     figsize_x=12,
     figsize_y=12,
 )
+
+
+df_plt = feature_reader.feature_arr[features_to_plt+["SQUARED_ROTATION"]].astype("float").T
+
+plt.figure(figsize=(15, 5), dpi=300)
+plt.imshow(stats.zscore(df_plt, axis=1), aspect="auto")
+plt.clim(-3, 3)
+ytick_labelsize = 12
+plt.yticks(np.arange(len(features_to_plt+["SQUARED_ROTATION"])), features_to_plt+["SQUARED_ROTATION"], size=ytick_labelsize)
+
+tick_num = np.arange(0, df_plt.shape[1], int(df_plt.shape[1] / 100))
+tick_labels = np.array(np.rint(feature_reader.feature_arr["time"].iloc[tick_num] / 1000), dtype=int)
+plt.xticks(tick_num, tick_labels)
+plt.xlabel("Time [s]")
+plt.ylabel("Features")
+cbar = plt.colorbar()
+cbar.set_label("Feaure amplitude [a.u.]")
+plt.xlim(190, 420)
+plt.title("Time-resolved waveformshape featuress")
+plt.tight_layout()
+plt.show()
+
+
+from py_neuromodulation import nm_plots
+
+nm_plots.plot_all_features(
+    df=feature_reader.feature_arr[features_to_plt+["time"]],
+    time_limit_low_s=15,
+    time_limit_high_s=20,
+    normalize=True,
+    save=False,
+    title="time",
+    ytick_labelsize=12,
+    feature_file=feature_reader.feature_file,
+    OUT_PATH=feature_reader.feature_dir,
+    #clim_low=1,
+    #clim_high=-1,
+)
+
 
 # %%
 feature_reader.plot_all_features(
@@ -234,6 +228,28 @@ feature_reader.plot_all_features(
     normalize=True,
     save=True,
 )
+
+feature_reader.plot_target_averaged_channel(
+    ch="ECOG_L_1_SMC_AT",
+    list_feature_keywords=None,
+    epoch_len=7,
+    threshold=0.5,
+    ytick_labelsize=10,
+    figsize_x=12,
+    figsize_y=12,
+)
+
+feature_reader.plot_target_averaged_channel(
+    ch="ECOG_L_1_SMC_AT",
+    list_feature_keywords=["beta"],
+    epoch_len=7,
+    threshold=0.5,
+    ytick_labelsize=10,
+    figsize_x=12,
+    figsize_y=12,
+)
+
+
 
 # %%
 nm_plots.plot_corr_matrix(
@@ -262,17 +278,17 @@ nm_plots.plot_corr_matrix(
 #
 # There are many more implemented methods, but we will here limit it to the ones presented.
 
-model = linear_model.LinearRegression()
+model = linear_model.LogisticRegression()
 feature_reader.feature_arr['SQUARED_ROTATION'] = feature_reader.feature_arr['SQUARED_ROTATION'].astype(int)>0.5
 
 feature_reader.decoder = nm_decode.Decoder(
-    features=feature_reader.feature_arr,
-    label=np.array(feature_reader.label).astype(bool),
+    features=feature_reader.feature_arr[[f for f in feature_reader.feature_arr.columns if "imag" in f]],
+    label=np.array(feature_reader.label).astype(int),
     label_name=feature_reader.label_name,
     used_chs=feature_reader.used_chs,
     model=model,
     eval_method=metrics.balanced_accuracy_score,
-    cv_method=model_selection.KFold(n_splits=3, shuffle=False),
+    cv_method=model_selection.KFold(n_splits=3, shuffle=True),
 )
 
 # %%
