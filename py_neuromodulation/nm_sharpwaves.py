@@ -2,6 +2,7 @@ import numpy as np
 from scipy import signal
 from mne.filter import create_filter
 from typing import Iterable
+import sys
 
 from py_neuromodulation import nm_features_abc
 
@@ -105,23 +106,12 @@ class SharpwaveAnalyzer(nm_features_abc.Feature):
         peak_right_val (np.ndarray): value of righ peak
         """
 
-        ind_greater = np.where(arr_ind_peaks > trough_ind)[0]
-        if ind_greater.shape[0] == 0:
+        peak_right_idx = np.min(arr_ind_peaks, initial=sys.maxsize, where=(arr_ind_peaks > trough_ind))
+        peak_left_idx  = np.max(arr_ind_peaks, initial=-1, where=(arr_ind_peaks < trough_ind))
+
+        if peak_right_idx == sys.maxsize or peak_left_idx == -1:
             raise NoValidTroughException("No valid trough")
-        val_ind_greater = arr_ind_peaks[ind_greater]
-        peak_right_idx = arr_ind_peaks[
-            ind_greater[np.argsort(val_ind_greater)[0]]
-        ]
-
-        ind_smaller = np.where(arr_ind_peaks < trough_ind)[0]
-        if ind_smaller.shape[0] == 0:
-            raise NoValidTroughException("No valid trough")
-
-        val_ind_smaller = arr_ind_peaks[ind_smaller]
-        peak_left_idx = arr_ind_peaks[
-            ind_smaller[np.argsort(val_ind_smaller)[-1]]
-        ]
-
+        
         return (
             peak_left_idx,
             peak_right_idx,
@@ -267,21 +257,39 @@ class SharpwaveAnalyzer(nm_features_abc.Feature):
             distance=self.sw_settings["detect_troughs"]["distance_troughs_ms"],
         )[0]
 
+        peak_idx = 0
         for trough_idx in troughs:
-            try:
-                (
-                    peak_idx_left,
-                    peak_idx_right,
-                    peak_left,
-                    peak_right,
-                ) = self._get_peaks_around(
-                    trough_idx, peaks, self.data_process_sw
-                )
-            except NoValidTroughException:
-                # in this case there are no adjacent two peaks around this trough
-                # str(e) could print the exception error message
-                # print(str(e))
+            
+            while peak_idx < peaks.size and peaks[peak_idx] < trough_idx:
+                peak_idx += 1
+                if peak_idx >= peaks.size:
+                    break
+
+            if peak_idx - 1 < 0:
                 continue
+            peak_idx_left = peaks[peak_idx - 1]
+
+            if peak_idx >= peaks.size:
+                continue
+            peak_idx_right = peaks[peak_idx]
+
+            peak_left = self.data_process_sw[peak_idx_left]
+            peak_right = self.data_process_sw[peak_idx_right]
+
+            # try:
+            #     (
+            #         peak_idx_left,
+            #         peak_idx_right,
+            #         peak_left,
+            #         peak_right,
+            #     ) = self._get_peaks_around(
+            #         trough_idx, peaks, self.data_process_sw
+            #     )
+            # except NoValidTroughException:
+            #     # in this case there are no adjacent two peaks around this trough
+            #     # str(e) could print the exception error message
+            #     # print(str(e))
+            #     continue
 
             trough = self.data_process_sw[trough_idx]
             self.trough.append(trough)
