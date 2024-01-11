@@ -262,8 +262,6 @@ class SharpwaveAnalyzer(nm_features_abc.Feature):
             
             while peak_idx < peaks.size and peaks[peak_idx] < trough_idx:
                 peak_idx += 1
-                if peak_idx >= peaks.size:
-                    break
 
             if peak_idx - 1 < 0:
                 continue
@@ -275,21 +273,6 @@ class SharpwaveAnalyzer(nm_features_abc.Feature):
 
             peak_left = self.data_process_sw[peak_idx_left]
             peak_right = self.data_process_sw[peak_idx_right]
-
-            # try:
-            #     (
-            #         peak_idx_left,
-            #         peak_idx_right,
-            #         peak_left,
-            #         peak_right,
-            #     ) = self._get_peaks_around(
-            #         trough_idx, peaks, self.data_process_sw
-            #     )
-            # except NoValidTroughException:
-            #     # in this case there are no adjacent two peaks around this trough
-            #     # str(e) could print the exception error message
-            #     # print(str(e))
-            #     continue
 
             trough = self.data_process_sw[trough_idx]
             self.trough.append(trough)
