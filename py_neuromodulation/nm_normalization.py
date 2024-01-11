@@ -138,6 +138,21 @@ class FeatureNormalizer:
 
         return data
 
+"""
+Functions to attempt calculating mean, median, std without checking for nans (faster)
+If result is nan, call nanmean, nanmedian or nanstd (slower)
+"""
+def faster_mean(data, axis):
+    result = np.mean(data, axis=axis)
+    return result if (not np.any(np.isnan(result))) else np.nanmean(data, axis=axis)
+
+def faster_std(data, axis):
+    result = np.std(data, axis=axis)
+    return result if (not np.any(np.isnan(result))) else np.nanstd(data, axis=axis)
+
+def faster_median(data, axis):
+    result = np.median(data, axis=axis)
+    return result if (not np.any(np.isnan(result))) else np.nanmedian(data, axis=axis)
 
 def _normalize_and_clip(
     current: np.ndarray,
@@ -148,16 +163,17 @@ def _normalize_and_clip(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Normalize data."""
     if method == NORM_METHODS.MEAN.value:
-        mean = np.nanmean(previous, axis=0)
+        mean = faster_mean(previous, axis=0)
         current = (current - mean) / mean
     elif method == NORM_METHODS.MEDIAN.value:
-        median = np.nanmedian(previous, axis=0)
+        median = faster_median(previous, axis=0)
         current = (current - median) / median
-    elif method == NORM_METHODS.ZSCORE.value:
-        mean = np.nanmean(previous, axis=0)
-        current = (current - mean) / np.nanstd(previous, axis=0)
+    elif method == NORM_METHODS.ZSCORE.value: # default
+        mean = faster_mean(previous, axis=0)
+        std = faster_std(previous, axis=0)
+        current = (current - mean) / std
     elif method == NORM_METHODS.ZSCORE_MEDIAN.value:
-        current = (current - np.nanmedian(previous, axis=0)) / np.nanstd(
+        current = (current - faster_median(previous, axis=0)) / faster_std(
             previous, axis=0
         )
     # For the following methods we check for the shape of current
