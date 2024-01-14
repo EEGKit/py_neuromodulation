@@ -173,12 +173,12 @@ class Burst(nm_features_abc.Feature):
         burst_states = np.where(deriv==True)[0]
 
         for i in range(burst_states.size//2):
-            burst_length.append(burst_states[i + 1] - burst_states[i])
-            burst_amplitude.append(beta_averp_norm[burst_states[i] : burst_states[i + 1]])
+            burst_length.append(burst_states[2 * i + 1] - burst_states[2 * i])
+            burst_amplitude.append(beta_averp_norm[burst_states[2 * i] : burst_states[2 * i + 1]])
 
         # the last burst length (in case isburst == True) is omitted,
         # since the true burst length cannot be estimated
-        
+        print(burst_length)
         burst_length = np.array(burst_length) / sfreq
 
         return burst_amplitude, burst_length
