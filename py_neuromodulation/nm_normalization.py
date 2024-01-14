@@ -143,16 +143,13 @@ Functions to attempt calculating mean, median, std without checking for nans (fa
 If result is nan, call nanmean, nanmedian or nanstd (slower)
 """
 def faster_mean(data, axis):
-    result = np.mean(data, axis=axis)
-    return result if (not np.any(np.isnan(result))) else np.nanmean(data, axis=axis)
+    return np.nanmean(data, axis=axis) if np.any(np.isnan(sum(data))) else np.mean(data, axis=axis)
 
 def faster_std(data, axis):
-    result = np.std(data, axis=axis)
-    return result if (not np.any(np.isnan(result))) else np.nanstd(data, axis=axis)
+    return np.nanstd(data, axis=axis) if np.any(np.isnan(sum(data))) else np.std(data, axis=axis)
 
 def faster_median(data, axis):
-    result = np.median(data, axis=axis)
-    return result if (not np.any(np.isnan(result))) else np.nanmedian(data, axis=axis)
+    return np.nanmedian(data, axis=axis) if np.any(np.isnan(sum(data))) else np.median(data, axis=axis)
 
 def _normalize_and_clip(
     current: np.ndarray,
