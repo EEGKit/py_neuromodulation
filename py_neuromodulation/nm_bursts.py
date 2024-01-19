@@ -178,7 +178,6 @@ class Burst(nm_features_abc.Feature):
 
         # the last burst length (in case isburst == True) is omitted,
         # since the true burst length cannot be estimated
-        print(burst_length)
         burst_length = np.array(burst_length) / sfreq
 
         return burst_amplitude, burst_length
