@@ -7,7 +7,7 @@ from py_neuromodulation import nm_features_abc, nm_filter
 
 from numba import njit
 
-@njit(cache=True)
+@njit(["float64(float64[:],int64)"], cache=True, fastmath=True)
 def percentile(arr, q):
     return np.percentile(arr, q)
 
