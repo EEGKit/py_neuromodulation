@@ -5,6 +5,11 @@ from scipy import signal
 
 from py_neuromodulation import nm_features_abc, nm_filter
 
+from numba import njit
+
+@njit(cache=True)
+def percentile(arr, q):
+    return np.percentile(arr, q)
 
 class Burst(nm_features_abc.Feature):
     def __init__(
@@ -109,7 +114,7 @@ class Burst(nm_features_abc.Feature):
                     )[-self.num_max_samples_ring_buffer :]
 
                 # calc features
-                burst_thr = np.percentile(
+                burst_thr = percentile(
                     self.data_buffer[ch_name][fband_name], q=self.threshold
                 )
 
