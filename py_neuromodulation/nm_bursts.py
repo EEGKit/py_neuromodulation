@@ -86,6 +86,7 @@ class Burst(nm_features_abc.Feature):
         filtered_data = np.abs(signal.hilbert(self.bandpass_filter.filter_data(data), axis=2))
         n_channels, n_fbands, n_samples = filtered_data.shape
 
+        # Update buffer array
         excess = max(0, self.data_buffer.shape[2] + n_samples - self.num_max_samples_ring_buffer)
         self.data_buffer = np.concatenate((self.data_buffer[:,:,excess:], filtered_data), axis=2)
 
@@ -119,7 +120,6 @@ class Burst(nm_features_abc.Feature):
         # ! Do I need 
         # num_bursts = np.sum(np.diff(bursts, axis = 2), axis = 2) // 2
         num_bursts = np.sum(falling_edges, axis = 2)
-
 
         burst_duration_mean = np.sum(bursts, axis = 2) / num_bursts
 
@@ -159,7 +159,7 @@ class Burst(nm_features_abc.Feature):
         bursts = np.zeros((beta_averp_norm.shape[0] + 1), dtype=bool)
         bursts[1:] = beta_averp_norm >= burst_thr
         deriv = np.diff(bursts)
-        print(deriv)
+        
         burst_length = []
         burst_amplitude = []
 
