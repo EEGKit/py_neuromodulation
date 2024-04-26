@@ -9,7 +9,7 @@ from numba import njit
 
 @njit(["float64(float64[:],int64)"], cache=True, fastmath=True)
 def percentile(arr, q):
-    return np.percentile(arr, q)
+    return np.percentile(arr, q, method='inverted_cdf')
 
 class Burst(nm_features_abc.Feature):
     def __init__(
